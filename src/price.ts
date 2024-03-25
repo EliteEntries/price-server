@@ -34,7 +34,7 @@ const openExchange = (exchange: string) => {
     }
 
     if (!there) {
-        const exchangeProcess = fork(`./exchanges/${exchange}.js`)
+        const exchangeProcess = fork(`./dist/exchanges/${exchange}.js`)
         exchanges.push([exchange, exchangeProcess])
 
         exchangeProcess.on('exit', () => {

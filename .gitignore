@@ -9,6 +9,7 @@
 /test
 
 # production
+dist
 
 # misc
 .DS_Store
