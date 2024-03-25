@@ -3,25 +3,24 @@
     "version": "0.0.1",
     "main": "main.js",
     "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1",
-      "start": "node ./dist/price.js"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "npx tsc && node ./dist/price.js"
     },
     "author": "",
     "license": "ISC",
     "description": "",
     "dependencies": {
-      "@alpacahq/alpaca-trade-api": "^2.12.1",
-      "@types/ws": "^8.5.10",
-      "ccxt": "^1.90.96",
-      "cli-color": "^2.0.4",
-      "clui": "^0.3.6",
-      "crc-32": "^1.2.0",
-      "crypto-js": "^3.3.0",
-      "dotenv": "^16.3.1",
-      "firebase-admin": "^10.0.2",
-      "ftx-api-rest": "0.0.4",
-      "redis": "^4.0.6",
-      "typescript": "^5.4.2"
+        "@alpacahq/alpaca-trade-api": "^2.12.1",
+        "@types/ws": "^8.5.10",
+        "ccxt": "^1.90.96",
+        "cli-color": "^2.0.4",
+        "clui": "^0.3.6",
+        "crc-32": "^1.2.0",
+        "crypto-js": "^3.3.0",
+        "dotenv": "^16.3.1",
+        "firebase-admin": "^10.3.0",
+        "ftx-api-rest": "0.0.4",
+        "redis": "^4.0.6",
+        "typescript": "^5.4.2"
     }
-  }
-  
+}

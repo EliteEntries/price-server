@@ -1,24 +1,35 @@
 import Alpaca from '@alpacahq/alpaca-trade-api'
 import redis, { RedisClientType, createClient } from 'redis'
 import https from 'https'
+import { initializeApp, credential } from 'firebase-admin'
+import { getFirestore } from 'firebase-admin/firestore'
+
+import serviceAccount from '../../util/firebase.json'
 import 'dotenv/config'
+
+initializeApp( { credential: credential.cert(serviceAccount as any) } )
+const db = getFirestore()
 
 const Publisher: RedisClientType = createClient({
     url: `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_URL}`
 })
-Publisher.on('error', (err) => console.log('Redis Publisher Error', err))
 
+Publisher.on('error', (err) => console.log('Redis Publisher Error', err))
 
 const alpaca = new Alpaca({
     keyId: process.env.ALPACA_KEY,
     secretKey: process.env.ALPACA_SECRET,
     paper: true,
 })
+
 let Stocks: any[] = [], Cryptos:any[] = [], Options: any[] = [],
     Candles: any[] = []
+
 async function main() {
-    if (!Publisher.isOpen) await Publisher.connect();
+    if (!Publisher.isOpen) await Publisher.connect()
+
     const result = await Publisher.get('exchanges:alpaca:tracked')
+
     if (result) {
         JSON.parse(result).forEach( (subscription: string[]) => { 
             subscription[0] == 'stock-trades' && Stocks.push(subscription[1])
@@ -36,9 +47,10 @@ async function main() {
     }, 1000)
 
 }
+
 main()
 
-export function getOptionsPrices(data: string|string[]) {
+async function getOptionsPrices(data: string|string[]) {
     const symbols = Array.isArray(data) ? data.join(',') : data
     const opts = {
         method: 'GET',
@@ -72,7 +84,7 @@ export function getOptionsPrices(data: string|string[]) {
         })
 }
 
-export async function getStockPrices(symbols: string|string[]) {
+async function getStockPrices(symbols: string|string[]) {
     if (!Array.isArray(symbols)) symbols = [symbols]
     const resp = await alpaca.getLatestTrades(symbols)
     resp.forEach((trade: any) => {
@@ -80,7 +92,7 @@ export async function getStockPrices(symbols: string|string[]) {
     })
 }
 
-export async function getCryptoPrices(data: string|string[]) {
+async function getCryptoPrices(data: string|string[]) {
     const symbols: string = Array.isArray(data) ? data.join(',') : data
     symbols.replace('/','%2F')
     const opts = {
@@ -110,4 +122,57 @@ export async function getCryptoPrices(data: string|string[]) {
     
     })
 
+}
+
+async function addTrack(symbol: string, type: string) {
+    const data = await Publisher.get('exchanges:alpaca:tracked')
+    const tracked: any[] = data ? JSON.parse(data) : []
+    tracked.push([type, symbol])
+    await Publisher.set('exchanges:alpaca:tracked', JSON.stringify(tracked))
+    switch (type) {
+        case 'stock-trades':
+            Stocks.push(symbol)
+            break;
+        case 'crypto-trades':
+            Cryptos.push(symbol)
+            break;
+        case 'option-prices':
+            Options.push(symbol)
+            break;
+        case 'sub-candles':
+            Candles.push(symbol)
+            break;
+        default:
+            break;
+    }
+}
+
+async function removeTrack(symbol: string, type: string) {
+    const data = await Publisher.get('exchanges:alpaca:tracked')
+    const tracked: any[] = data ? JSON.parse(data) : []
+    const index = tracked.findIndex((track: string[]) => track[0] == type && track[1] == symbol)
+    if (index > -1) {
+        tracked.splice(index, 1)
+        await Publisher.set('exchanges:alpaca:tracked', JSON.stringify(tracked))
+    }
+    switch (type) {
+        case 'stock-trades':
+            Stocks = Stocks.filter((stock: string) => stock != symbol)
+            await Publisher.del('price:alpaca:'+symbol)
+            break;
+        case 'crypto-trades':
+            Cryptos = Cryptos.filter((crypto: string) => crypto != symbol)
+            await Publisher.del('price:alpaca:'+symbol)
+            break;
+        case 'option-prices':
+            Options = Options.filter((option: string) => option != symbol)
+            await Publisher.del('bid:alpaca:'+symbol)
+            await Publisher.del('ask:alpaca:'+symbol)
+            break;
+        case 'sub-candles':
+            Candles = Candles.filter((candle: string) => candle != symbol)
+            break;
+        default:
+            break;
+    }
 }
