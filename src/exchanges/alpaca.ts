@@ -27,6 +27,7 @@ let Stocks: any[] = [], Cryptos:any[] = [], Options: any[] = [],
 
 async function main() {
     if (!Publisher.isOpen) await Publisher.connect()
+    const snapshot = await db.collection('exchanges').doc('alpaca').get()
 
     const result = await Publisher.get('exchanges:alpaca:tracked')
 
@@ -37,7 +38,18 @@ async function main() {
             subscription[0] == 'option-prices' && Options.push(subscription[1])
             subscription[0] == 'sub-candles' && Candles.push(subscription[1])
         })
+    }
 
+    if (snapshot.exists) {
+        const data = snapshot.data()
+        if (data?.tracked) {
+            data.tracked.forEach( (subscription: string[]) => { 
+                subscription[0] == 'stock-trades' && Stocks.push(subscription[1])
+                subscription[0] == 'crypto-trades' && Cryptos.push(subscription[1])
+                subscription[0] == 'option-prices' && Options.push(subscription[1])
+                subscription[0] == 'sub-candles' && Candles.push(subscription[1])
+            })
+        }
     }
 
     setInterval( async ()=>{
@@ -129,6 +141,7 @@ async function addTrack(symbol: string, type: string) {
     const tracked: any[] = data ? JSON.parse(data) : []
     tracked.push([type, symbol])
     await Publisher.set('exchanges:alpaca:tracked', JSON.stringify(tracked))
+    await db.collection('exchanges').doc('alpaca').set({ tracked: tracked }, { merge: true })
     switch (type) {
         case 'stock-trades':
             Stocks.push(symbol)
@@ -154,6 +167,7 @@ async function removeTrack(symbol: string, type: string) {
     if (index > -1) {
         tracked.splice(index, 1)
         await Publisher.set('exchanges:alpaca:tracked', JSON.stringify(tracked))
+        await db.collection('exchanges').doc('alpaca').set({ tracked: tracked }, { merge: true })
     }
     switch (type) {
         case 'stock-trades':
