@@ -58,6 +58,25 @@ async function main() {
         if (Options.length && Options.length > 0) await getOptionsPrices(Options)
     }, 1000)
 
+    //! Add a listener for new subscriptions and unsubscriptions on firestore db
+    db.collection('exchanges').doc('alpaca').onSnapshot( async (snapshot) => {
+        const data = snapshot.data()
+        if (data?.tracked) {
+            data.tracked.forEach( async (subscription: string[]) => {
+                if (subscription[0] == 'stock-trades' && !Stocks.includes(subscription[1])) {
+                    await addTrack(subscription[1], subscription[0])
+                } else if (subscription[0] == 'crypto-trades' && !Cryptos.includes(subscription[1])) {
+                    await addTrack(subscription[1], subscription[0])
+                } else if (subscription[0] == 'option-prices' && !Options.includes(subscription[1])) {
+                    await addTrack(subscription[1], subscription[0])
+                } else if (subscription[0] == 'sub-candles' && !Candles.includes(subscription[1])) {
+                    await addTrack(subscription[1], subscription[0])
+                }
+            })
+        }
+    })
+    
+
 }
 
 main()
