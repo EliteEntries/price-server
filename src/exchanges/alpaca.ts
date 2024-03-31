@@ -1,14 +1,8 @@
 import Alpaca from '@alpacahq/alpaca-trade-api'
 import redis, { RedisClientType, createClient } from 'redis'
 import https from 'https'
-import { initializeApp, credential } from 'firebase-admin'
-import { getFirestore } from 'firebase-admin/firestore'
-
-import serviceAccount from '../../util/firebase.json'
+import { Firestore } from 'firebase-admin/firestore'
 import 'dotenv/config'
-
-initializeApp( { credential: credential.cert(serviceAccount as any) } )
-const db = getFirestore()
 
 const Publisher: RedisClientType = createClient({
     url: `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_URL}`
@@ -23,9 +17,10 @@ const alpaca = new Alpaca({
 })
 
 let Stocks: any[] = [], Cryptos:any[] = [], Options: any[] = [],
-    Candles: any[] = []
+    Candles: any[] = [], db: Firestore
 
-async function main() {
+async function main(DB:Firestore) {
+    db = DB
     if (!Publisher.isOpen) await Publisher.connect()
     const snapshot = await db.collection('exchanges').doc('alpaca').get()
 
@@ -79,7 +74,31 @@ async function main() {
 
 }
 
-main()
+process && process.on('message', async (message:any) => {
+    message = JSON.parse(message)
+    switch (message[0]) {
+        case 'start' : {
+            await main(message[1])
+            break;
+        }
+        case 'sub-trades' : {
+            await addTrack(message[2], message[1])
+            break;
+        }
+        case 'unsub-trades' : {
+            await removeTrack(message[2], message[1])
+            break;
+        }
+        case 'sub-candles' : {
+            await addTrack(message[2], message[1])
+            break;
+        }
+        case 'unsub-candles' : {
+            await removeTrack(message[2], message[1])
+            break;
+        }
+    }
+})
 
 async function getOptionsPrices(data: string|string[]) {
     const symbols = Array.isArray(data) ? data.join(',') : data
