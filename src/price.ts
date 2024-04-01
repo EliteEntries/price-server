@@ -63,6 +63,31 @@ const openExchange = (exchange: string) => {
                     console.log(message[0] + ' price error, reconnecting in 5 seconds.')
                 break;
                 }
+                case 'sub' : {
+                    switch (message[2]) {
+                        case 'trades' : {
+                            console.log("Subscribed to " + message[3] + ' trades. ' + exchange)
+                            if (message[3].match(/^[A-Za-z]{1,5}\d{6}[CP]\d{8}$/)) {
+                                // Options
+                            } else if (message[3].includes('/')) {
+                                // Futures/Forex/Crypto
+                            } else {
+                                // Stocks
+                            }
+                        break;
+                        }
+                        case 'candles' : {
+                            console.log("Subscribed to " + message[3] + ' ' + message[4] + ' candles. ' + exchange)
+                        break;
+                        }
+                        case 'prices':
+                        case 'quotes': {
+                            console.log("Subscribed to " + message[3] + ' ' + message[4] + ' quotes. ' + exchange)
+                        break;
+                        }
+                    }    
+                break;
+                }
                 case 'sub-trades' : {
                     console.log("Subscribed to " + message[2] + ' trades. ' + exchange)
                 break;
@@ -132,6 +157,11 @@ const openExchange = (exchange: string) => {
     })
 
 })();
+
+
+async function subscribe(exchange: string, type: string, symbol: string, interval?: string) {
+    
+}
 
 //setTimeout(()=>Publisher.publish('Price Server', JSON.stringify(['start','alpaca'])),1000)
 //setTimeout(()=>Publisher.publish('Price Server', JSON.stringify(['sub-trades','alpaca','NVDA'])),10000)
