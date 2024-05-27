@@ -1,11 +1,6 @@
 import { fork } from 'child_process';
-import redis, { RedisClientType, createClient } from 'redis';
 import 'dotenv/config';
-import { applicationDefault, initializeApp } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
-
-initializeApp({credential:applicationDefault()})
-const db = getFirestore()
+import { RedisClientType, createClient } from 'redis';
 
 const exchanges: any[] = [];
 console.log(`redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_URL}`)
@@ -40,7 +35,7 @@ const openExchange = (exchange: string) => {
 
     if (!there) {
         const exchangeProcess = fork(`./dist/exchanges/${exchange}.js`)
-        exchangeProcess.send(['start', db])
+        exchangeProcess.send(['start'])
         exchanges.push([exchange, exchangeProcess])
 
         exchangeProcess.on('exit', () => {
@@ -163,6 +158,6 @@ async function subscribe(exchange: string, type: string, symbol: string, interva
     
 }
 
-//setTimeout(()=>Publisher.publish('Price Server', JSON.stringify(['start','alpaca'])),1000)
+setTimeout(()=>Publisher.publish('Price Server', JSON.stringify(['start','alpaca'])),1000)
 //setTimeout(()=>Publisher.publish('Price Server', JSON.stringify(['sub-trades','alpaca','NVDA'])),10000)
 //setTimeout(()=>Publisher.publish('Price Server', JSON.stringify(['sub-trades','alpaca','SSS'])),10000)

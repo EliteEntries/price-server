@@ -1,8 +1,8 @@
 import Alpaca from '@alpacahq/alpaca-trade-api'
-import redis, { RedisClientType, createClient } from 'redis'
-import https from 'https'
-import { Firestore } from 'firebase-admin/firestore'
+import { db, getDocRef, setDb } from '@xiroex/firebase-admin'
 import 'dotenv/config'
+import https from 'https'
+import { RedisClientType, createClient } from 'redis'
 
 const Publisher: RedisClientType = createClient({
     url: `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_URL}`
@@ -17,12 +17,15 @@ const alpaca = new Alpaca({
 })
 
 let Stocks: any[] = [], Cryptos:any[] = [], Options: any[] = [],
-    Candles: any[] = [], db: Firestore
+    Candles: any[] = []
 
-async function main(DB:Firestore) {
-    db = DB
+async function main() {
     if (!Publisher.isOpen) await Publisher.connect()
-    const snapshot = await db.collection('exchanges').doc('alpaca').get()
+    setDb('price')
+    let snapshot:any
+    snapshot = await getDocRef('exchanges', 'alpaca').get()
+    console.log('We made it here!')
+    console.log(snapshot.data())
 
     const result = await Publisher.get('exchanges:alpaca:tracked')
 
@@ -54,7 +57,7 @@ async function main(DB:Firestore) {
     }, 1000)
 
     //! Add a listener for new subscriptions and unsubscriptions on firestore db
-    db.collection('exchanges').doc('alpaca').onSnapshot( async (snapshot) => {
+    getDocRef('exchanges','alpaca').onSnapshot( async (snapshot: { data: () => any }) => {
         const data = snapshot.data()
         if (data?.tracked) {
             data.tracked.forEach( async (subscription: string[]) => {
@@ -75,10 +78,10 @@ async function main(DB:Firestore) {
 }
 
 process && process.on('message', async (message:any) => {
-    message = JSON.parse(message)
+    console.log(message)
     switch (message[0]) {
         case 'start' : {
-            await main(message[1])
+            await main()
             break;
         }
         case 'sub-trades' : {
@@ -179,7 +182,7 @@ async function addTrack(symbol: string, type: string) {
     const tracked: any[] = data ? JSON.parse(data) : []
     tracked.push([type, symbol])
     await Publisher.set('exchanges:alpaca:tracked', JSON.stringify(tracked))
-    await db.collection('exchanges').doc('alpaca').set({ tracked: tracked }, { merge: true })
+    await getDocRef('exchanges','alpaca').set({ tracked: tracked }, { merge: true })
     switch (type) {
         case 'stock-trades':
             Stocks.push(symbol)

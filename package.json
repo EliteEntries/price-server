@@ -4,7 +4,7 @@
     "main": "main.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "npx tsc && GOOGLE_APPLICATION_CREDENTIALS=\"/home/alpha/code/price-server/util/firebase.json\" node ./dist/price.js"
+        "start": "npx tsc && node ./dist/price.js"
     },
     "author": "",
     "license": "ISC",
@@ -12,6 +12,7 @@
     "dependencies": {
         "@alpacahq/alpaca-trade-api": "^2.12.1",
         "@types/ws": "^8.5.10",
+        "@xiroex/firebase-admin": "^0.0.3",
         "ccxt": "^1.90.96",
         "cli-color": "^2.0.4",
         "clui": "^0.3.6",
